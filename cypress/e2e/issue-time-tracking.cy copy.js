@@ -1,44 +1,66 @@
-describe("Time estimation functionality", () => {
+describe("Issue comments creating, editing and deleting", () => {
   beforeEach(() => {
     cy.visit("/");
     cy.url()
-      .should("eq", `${Cypress.env("baseUrl")}project`)
+      .should("eq", `${Cypress.env("baseUrl")}project/board`)
       .then((url) => {
         cy.visit(url + "/board");
-        cy.get('[data-testid="board-list:backlog"]')
-          .should("be.visible")
-          .and("have.length", "1")
-          .within(() => {
-            // Assert that this list contains 4 issues and first element with tag p has specified text
-            cy.get('[data-testid="list-issue"]')
-              .first()
-              .should("contain", "This is an issue of type: Task.");
-            cy.get('[data-testid="list-issue"]').first().click();
-          });
+        cy.contains("This is an issue of type: Task.").click();
       });
   });
 
   const getIssueDetailsModal = () =>
-    cy.get('[data-testid="Modal:issue-details"]');
+    cy.get('[data-testid="modal:issue-details"]');
 
-  const originalestimatehourselector = '[placeholder="Number"]';
-  const addtime = "10";
-  const updatedestimatedTime = "15";
+  it("Should create a comment successfully", () => {
+    const comment = "TEST_COMMENT";
 
-  it("Should add, update and remove estimated time in the issue", () => {
-    //Add estimated time
-    cy.get(originalestimatehourselector)
-      .clear()
-      .type(addtime)
-      .should("have.value", addtime);
+    getIssueDetailsModal().within(() => {
+      cy.contains("Add a comment...").click();
+      cy.get('textarea[placeholder="Add a comment..."]').type(comment);
+      cy.contains("button", "Save").click().should("not.exist");
+      cy.contains("Add a comment...").should("exist");
+      cy.get('[data-testid="issue-comment"]').should("contain", comment);
+    });
+  });
 
-    //Add estimated updated time
-    cy.get(originalestimatehourselector)
-      .clear()
-      .type(updatedestimatedTime)
-      .should("have.value", updatedestimatedTime);
+  it("Should edit a comment successfully", () => {
+    const previousComment = "An old silent pond...";
+    const comment = "TEST_COMMENT_EDITED";
 
-    // Remove estimated time
-    cy.get(originalestimatehourselector).clear().should("have.value", "");
+    getIssueDetailsModal().within(() => {
+      cy.get('[data-testid="issue-comment"]')
+        .first()
+        .contains("Edit")
+        .click()
+        .should("not.exist");
+
+      cy.get('textarea[placeholder="Add a comment..."]')
+        .should("contain", previousComment)
+        .clear()
+        .type(comment);
+
+      cy.contains("button", "Save").click().should("not.exist");
+
+      cy.get('[data-testid="issue-comment"]')
+        .should("contain", "Edit")
+        .and("contain", comment);
+    });
+  });
+
+  it("Should delete a comment successfully", () => {
+    getIssueDetailsModal()
+      .find('[data-testid="issue-comment"]')
+      .contains("Delete")
+      .click();
+
+    cy.get('[data-testid="modal:confirm"]')
+      .contains("button", "Delete comment")
+      .click()
+      .should("not.exist");
+
+    getIssueDetailsModal()
+      .find('[data-testid="issue-comment"]')
+      .should("not.exist");
   });
 });
